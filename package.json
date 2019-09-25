@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/amatmiftakhudin/unit-testing#readme",
   "dependencies": {
+    "dotenv": "^8.1.0",
     "exceljs": "^2.0.1",
     "node-rest-client": "^3.1.0"
   }
