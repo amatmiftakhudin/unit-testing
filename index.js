@@ -9,6 +9,8 @@ var client = new Client();
 
 var workbook = new Excel.Workbook();
 
+
+
 function compareObjects(object1, object2){
     var equal = true;
     for (i in object1)
@@ -17,15 +19,30 @@ function compareObjects(object1, object2){
     return equal;
 }
 
-const excelFile = process.env.EXCEL_FILE;
+function jsonToQueryString(json) {
+    return '?' + 
+        Object.keys(json).map(function(key) {
+            return encodeURIComponent(key) + '=' +
+                encodeURIComponent(json[key]);
+        }).join('&');
+}
 
+const excelFile = process.env.EXCEL_FILE;
+var rootPathApi = process.env.ROOT_PATH;
+var authToken = process.env.AUTH_TOKEN;
+var showConsole = false;
+if(process.env.ENV != null || process.env.ENV != undefined){
+	rootPathApi = process.env["ROOT_PATH_" + process.env.ENV];
+}
+
+if(process.env.SHOW_CONSOLE != null || process.env.SHOW_CONSOLE != undefined){
+	showConsole = ( process.env.SHOW_CONSOLE == 'true' || process.env.SHOW_CONSOLE == 'TRUE');
+}
 workbook.xlsx.readFile(excelFile)
 	.then(function(){
 
 		var apiListSheet = workbook.getWorksheet('Api List');
 		var configLocal = workbook.getWorksheet('Local');
-
-		//console.log(apiListSheet);
 
 		var rowCount = apiListSheet.rowCount;
 		for(i=1; i<rowCount; i++){
@@ -34,16 +51,34 @@ workbook.xlsx.readFile(excelFile)
 			let host = configLocal.getCell('B1').value.text;
 			let method = apiListSheet.getCell('C' + position).value;
 			let expectedResult = JSON.parse( apiListSheet.getCell('F' + position).value );
-console.log(host + path)
+			let parameters = JSON.parse( apiListSheet.getCell('D' + position).value );
+			var args = {
+				data: parameters,
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": authToken
+				}
+			};
+			
 			if(method == 'GET'){
-				client.get(host + path, function(data, response){
-					
+				let qstr = jsonToQueryString(args.data);
+				client.get(rootPathApi + path + qstr, args, function(data, response){
+					if(showConsole == true){
+						logData = JSON.stringify({url: rootPathApi + path, parameters: parameters, result: data}, null, "    ");
+						console.log(logData);
+					}
+
 					apiListSheet.getCell('E' + position).value = data;
 					apiListSheet.getCell('G' + position).value = compareObjects(data, expectedResult) == true ? "PASS" : "FAILED";
 					workbook.xlsx.writeFile(excelFile);
 				});
 			} else if (method == 'POST'){
-				client.post(host + path, function(data, response){
+				client.post(rootPathApi + path, args, function(data, response){
+					if(showConsole == true){
+						logData = JSON.stringify({url: rootPathApi + path, parameters: parameters, result: data}, null, "    ");
+						console.log(logData);
+					}
+					
 					apiListSheet.getCell('E' + position).value = data;
 					apiListSheet.getCell('G' + position).value = compareObjects(data, expectedResult) == true ? "PASS" : "FAILED";
 					workbook.xlsx.writeFile(excelFile);
@@ -52,14 +87,4 @@ console.log(host + path)
 
 			
 		}
-		
-		//console.log(rowCount);
-
-		//console.log('File exist.');
 	});
-
-// client.get("https://klobid.free.beeceptor.com/rest/view/users", function(data, response){
-// 	console.log(data);
-
-
-// });
