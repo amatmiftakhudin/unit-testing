@@ -12,6 +12,9 @@ var workbook = new Excel.Workbook();
 
 
 function compareObjects(object1, object2){
+	if(object1 == undefined || object2 == undefined)
+		return false;
+
     var equal = true;
     for (i in object1)
         if (!object2.hasOwnProperty(i))
@@ -20,6 +23,9 @@ function compareObjects(object1, object2){
 }
 
 function jsonToQueryString(json) {
+	if (json == null || json == undefined)
+		return '';
+
     return '?' + 
         Object.keys(json).map(function(key) {
             return encodeURIComponent(key) + '=' +
@@ -45,10 +51,11 @@ workbook.xlsx.readFile(excelFile)
 		var configLocal = workbook.getWorksheet('Local');
 
 		var rowCount = apiListSheet.rowCount;
+		console.log({totalRow: rowCount});
 		for(i=1; i<rowCount; i++){
-			let position = i+1;
+			let position = i + 1;
 			let path = apiListSheet.getCell('B' + position).value;
-			let host = configLocal.getCell('B1').value.text;
+			
 			let method = apiListSheet.getCell('C' + position).value;
 			let expectedResult = JSON.parse( apiListSheet.getCell('F' + position).value );
 			let parameters = JSON.parse( apiListSheet.getCell('D' + position).value );
